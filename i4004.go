@@ -110,7 +110,7 @@ func (c *CPU) Run() (cycles uint64) {
 				nops = 0
 			}
 
-			if nops > 10 {
+			if c.CycleCounter > 100 {
 				os.Exit(2)
 			}
 
@@ -141,13 +141,17 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 	} else if opcode >= 0x10 && opcode <= 0x1F {
 		return c.JCN(opcode, operand)
 	} else if opcode >= 0x20 && opcode <= 0x2F {
-
 		if !(operand%2 == 1) {
 			nextcode := c.FetchOpCode()
 			return c.FIM(nextcode)
 		} else {
 			return c.SRC((operand - 1) / 2)
 		}
+	} else if opcode >= 0x60 && opcode <= 0x6F {
+		return c.INC(operand)
+	} else if opcode >= 0x70 && opcode <= 0x7F {
+		nextcode := c.FetchOpCode()
+		return c.ISZ(operand, nextcode)
 	} else if opcode >= 0xB0 && opcode <= 0xBF {
 		return c.XCH(operand)
 	} else if opcode >= 0xD0 && opcode <= 0xDF {
