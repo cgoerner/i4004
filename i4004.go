@@ -128,11 +128,16 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 		} else {
 			return c.SRC((operand - 1) / 2)
 		}
+	} else if opcode >= 0x50 && opcode <= 0x5F {
+		nextcode := c.FetchOpCode()
+		return c.JMS(operand, nextcode)
 	} else if opcode >= 0x60 && opcode <= 0x6F {
 		return c.INC(operand)
 	} else if opcode >= 0x70 && opcode <= 0x7F {
 		nextcode := c.FetchOpCode()
 		return c.ISZ(operand, nextcode)
+	} else if opcode >= 0xA0 && opcode <= 0xAF {
+		return c.LD(operand)
 	} else if opcode >= 0xB0 && opcode <= 0xBF {
 		return c.XCH(operand)
 	} else if opcode >= 0xC0 && opcode <= 0xCF {

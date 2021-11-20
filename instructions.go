@@ -1,5 +1,7 @@
 package i4004
 
+import "fmt"
+
 func (c *CPU) NOP() uint8 {
 	// No Operation
 	return 1 // 1 cycle
@@ -37,8 +39,22 @@ func (c *CPU) JUN() uint8 {
 	return 2 // 1 cycle
 }
 
-func (c *CPU) JMS() uint8 {
+func (c *CPU) JMS(addr1 uint8, addr2 uint8) uint8 {
 	// Jump to Subroutine
+	fmt.Println("JMS", addr1, addr2)
+	c.PrintAll(addr1)
+	c.PrintAll(addr2)
+	address := addr1 | addr2
+	c.PrintAll(address)
+	if c.StackPointer < 3 {
+		c.StackPointer++
+		for i := uint8(0); !(i == 0); i-- {
+			c.PCStack[i] = c.PCStack[i-1]
+		}
+		c.PCStack[0] = address
+	} else {
+		panic("Stack Overflow!")
+	}
 	return 2 // 1 cycle
 }
 
@@ -76,8 +92,9 @@ func (c *CPU) SUB() uint8 {
 	return 1 // 1 cycle
 }
 
-func (c *CPU) LD() uint8 {
-	// Load
+func (c *CPU) LD(register uint8) uint8 {
+	// LD: Load. Load index register to Accumulator.
+	c.Accumulator = c.Registers[register]
 	return 1 // 1 cycle
 }
 
@@ -90,7 +107,7 @@ func (c *CPU) XCH(register uint8) uint8 {
 func (c *CPU) BBL(data uint8) uint8 {
 	// Branch Back and Load
 	if c.StackPointer > 0 {
-		for i := uint8(0); i == c.StackPointer; i++ {
+		for i := uint8(0); !(i > c.StackPointer); i++ {
 			c.PCStack[i] = c.PCStack[i+1]
 		}
 		c.PCStack[c.StackPointer] = 0
