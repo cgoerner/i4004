@@ -110,7 +110,7 @@ func (c *CPU) Run() (cycles uint64) {
 				nops = 0
 			}
 
-			if c.CycleCounter > 100 {
+			if c.CycleCounter > 1000 {
 				os.Exit(2)
 			}
 

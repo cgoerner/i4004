@@ -1,6 +1,9 @@
 package i4004
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 func (c *CPU) Debug() string {
 	//mnem, args := c.disasmPC()
@@ -15,4 +18,15 @@ func (c *CPU) Debug() string {
 		c.Accumulator, c.Carry, c.RAMAddressRegister, c.PC, c.PC1, c.PC2, c.PC3)
 
 	return fmt.Sprintf("%s %s", ptrs, regs)
+}
+
+func (c *CPU) CPUInfo() string {
+	return fmt.Sprintf("Manufacturer: %s\r\nModel: %s\r\nSpeed: %s\r\nTick length: %s", c.Manufacturer, c.Model, c.Speed, c.ClockTime)
+}
+
+func (c *CPU) PrintAll(n uint8) {
+	var number int64 = int64(n)
+	fmt.Print(strconv.FormatInt(number, 2), " ")
+	fmt.Print(strconv.FormatInt(number, 10), " ")
+	fmt.Println(strconv.FormatInt(number, 16))
 }
