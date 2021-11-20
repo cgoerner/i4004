@@ -8,7 +8,7 @@ import (
 
 const (
 	SpeedDebug      = 10 * time.Millisecond
-	Speed740kHz     = 1350 * time.Nanosecond
+	Speed741kHz     = 1350 * time.Nanosecond
 	CPUManufacturer = "Intel"
 	CPUModel        = "4004"
 	CPUSpeed        = "741 kHz"
@@ -61,7 +61,7 @@ func New() (c *CPU) {
 		Manufacturer: CPUManufacturer,
 		Model:        CPUModel,
 		Speed:        CPUSpeed,
-		ClockTime:    Speed740kHz,
+		ClockTime:    Speed741kHz,
 	}
 
 	return
