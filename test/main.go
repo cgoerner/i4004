@@ -9,6 +9,7 @@ import (
 
 func main() {
 	c := i4004.New()
+	c.Debug = true
 
 	fmt.Println(c.CPUInfo())
 
@@ -28,15 +29,13 @@ func main() {
 
 	len, err := f.Read(bytes)
 	if err != nil {
+		fmt.Println(len)
 		panic(err)
 	}
 
 	f.Close()
 
-	fmt.Println(len)
-
 	for index, element := range bytes {
-		c.PrintAll(element)
 		c.PROM[index] = element
 	}
 

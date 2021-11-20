@@ -39,21 +39,23 @@ type CPU struct {
 	Speed        string
 
 	PROM      [4096]uint8 //4KB
+	ROMPort   uint8
 	RAMData   [4096]uint8 //4KB
 	RAMStatus [16][4][4]uint8
 	Registers [16]uint8
 
-	Accumulator        uint8 //Accumulator (4 bits)
-	Carry              uint8 //Carry flag (1 bit)
-	Test               uint8 //Test pin (1 bit)
-	PC                 uint8 //Program counter
-	PC1                uint8 //Push-down address call stack level 1
-	PC2                uint8 //Push-down address call stack level 2
-	PC3                uint8 //Push-down address call stack level 3
+	Accumulator        uint8    //Accumulator (4 bits)
+	Carry              uint8    //Carry flag (1 bit)
+	Test               uint8    //Test pin (1 bit)
+	PCStack            [4]uint8 //Program counter stack
+	StackPointer       uint8
 	RAMAddressRegister uint8 //???
 
-	ClockTime    time.Duration
+	ClockTime    time.Duration //Time between each clock tick
+	TimeUsed     time.Duration //Time spent processing operations
 	CycleCounter uint64
+
+	Debug bool
 }
 
 func New() (c *CPU) {
@@ -63,19 +65,12 @@ func New() (c *CPU) {
 		Speed:        CPUSpeed,
 		ClockTime:    Speed741kHz,
 	}
-
 	return
 }
 
-const tickBudget = 10 * time.Millisecond
+func (c *CPU) Run() {
 
-func (c *CPU) Run() (cycles uint64) {
-
-	fmt.Println(tickBudget)
-
-	debug := true
-
-	ticker := time.NewTicker(tickBudget)
+	ticker := time.NewTicker(c.ClockTime)
 
 	defer func() {
 		f := recover()
@@ -85,47 +80,33 @@ func (c *CPU) Run() (cycles uint64) {
 	}()
 	defer ticker.Stop()
 
-	var TimeUsed time.Duration
-
-	nops := 0
-
 	for {
 		<-ticker.C // wait for next tick
 
-		for TimeUsed < tickBudget {
+		c.Step()
 
-			op := c.FetchOpCode()
-			cycles := c.PerformOp(op)
-
-			c.CycleCounter += uint64(cycles)
-			TimeUsed += time.Duration(cycles) * c.ClockTime
-
-			if debug {
-				fmt.Printf("OP=%02x %s cycles=%d timeUsed=%s \r\n", op, c.Debug(), c.CycleCounter, TimeUsed)
-			}
-
-			if op == 0x00 {
-				nops++
-			} else {
-				nops = 0
-			}
-
-			if c.CycleCounter > 1000 {
-				os.Exit(2)
-			}
-
+		if c.CycleCounter >= 100 {
+			os.Exit(2)
 		}
-
-		TimeUsed -= tickBudget
 	}
+}
 
+func (c *CPU) Step() {
+	opcode := c.FetchOpCode()
+	cycles := c.PerformOp(opcode)
+
+	c.CycleCounter += uint64(cycles)
+	c.TimeUsed = time.Duration(c.CycleCounter) * c.ClockTime
+
+	if c.Debug {
+		fmt.Printf("OP=%02x %s cycles=%d timeUsed=%s \r\n", opcode, c.DebugInfo(), c.CycleCounter, c.TimeUsed)
+	}
 }
 
 func (c *CPU) FetchOpCode() uint8 {
-	op := c.PROM[c.PC]
-	c.PC++
-
-	return op
+	opcode := c.PROM[c.PCStack[0]]
+	c.PCStack[0]++
+	return opcode
 }
 
 func (c *CPU) PerformOp(opcode uint8) uint8 {
@@ -143,7 +124,7 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 	} else if opcode >= 0x20 && opcode <= 0x2F {
 		if !(operand%2 == 1) {
 			nextcode := c.FetchOpCode()
-			return c.FIM(nextcode)
+			return c.FIM(operand, nextcode)
 		} else {
 			return c.SRC((operand - 1) / 2)
 		}
@@ -154,14 +135,18 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 		return c.ISZ(operand, nextcode)
 	} else if opcode >= 0xB0 && opcode <= 0xBF {
 		return c.XCH(operand)
+	} else if opcode >= 0xC0 && opcode <= 0xCF {
+		return c.BBL(operand)
 	} else if opcode >= 0xD0 && opcode <= 0xDF {
 		return c.LDM(operand)
 	} else if opcode == 0xE0 {
 		return c.WRM()
+	} else if opcode == 0xE2 {
+		return c.WRR()
 	} else if opcode == 0xF2 {
 		return c.IAC()
 	} else {
-		fmt.Println("OOPS")
+		fmt.Println("Unknown operation!")
 		return 1
 	}
 
@@ -173,6 +158,5 @@ func (c *CPU) SetRegisterPair(index uint8, data uint8) {
 }
 
 func (c *CPU) GetRegisterPair(index uint8) uint8 {
-	fmt.Println()
 	return ((uint8(c.Registers[index])<<4)&0xF0 | uint8(c.Registers[index+1])&0xF)
 }
