@@ -24,17 +24,17 @@ func (c *CPU) SRC(rpair uint8) uint8 {
 	return 1 // 1 cycle
 }
 
-func (c *CPU) FIN() uint8 {
+func (c *CPU) FIN(rpair uint8, data uint8) uint8 {
 	// Fetch Indirect
 	return 1 // 1 cycle
 }
 
-func (c *CPU) JIN() uint8 {
+func (c *CPU) JIN(rpair uint8) uint8 {
 	// Jump Indirect
 	return 1 // 1 cycle
 }
 
-func (c *CPU) JUN() uint8 {
+func (c *CPU) JUN(address uint8) uint8 {
 	// Jump Unconditional
 	return 2 // 1 cycle
 }
@@ -77,7 +77,7 @@ func (c *CPU) ISZ(register uint8, address uint8) uint8 {
 }
 
 func (c *CPU) ADD(register uint8) uint8 {
-	// Add
+	// ADD: Add. Add index register to accumulator with carry.
 	c.Accumulator += uint8(c.Registers[register]) + c.Carry
 	c.Carry = 0
 	if c.Accumulator&0xF0 == 1 {
@@ -87,8 +87,9 @@ func (c *CPU) ADD(register uint8) uint8 {
 	return 1 // 1 cycle
 }
 
-func (c *CPU) SUB() uint8 {
-	// Subtract
+func (c *CPU) SUB(register uint8) uint8 {
+	// SUB: Subtract. Subtract index register from accumulator with borrow.
+	c.Accumulator += (^c.Registers[register] & 0xf) + (c.Carry & 1)
 	return 1 // 1 cycle
 }
 
