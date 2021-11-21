@@ -117,7 +117,7 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 	//PrintAll(opcode)
 	//PrintAll(operand)
 
-	if opcode == 0x00 {
+	if opcode >= 0x0 && opcode <= 0x09 {
 		return c.NOP()
 	} else if opcode >= 0x10 && opcode <= 0x1F {
 		return c.JCN(opcode, operand)
@@ -128,6 +128,15 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 		} else {
 			return c.SRC((operand - 1) / 2)
 		}
+	} else if opcode >= 0x30 && opcode <= 0x3F {
+		if !(operand%2 == 1) {
+			nextcode := c.FetchOpCode()
+			return c.FIN(operand, nextcode)
+		} else {
+			return c.JIN((operand - 1) / 2)
+		}
+	} else if opcode >= 0x40 && opcode <= 0x4F {
+		return c.JUN(operand & 0xF0)
 	} else if opcode >= 0x50 && opcode <= 0x5F {
 		nextcode := c.FetchOpCode()
 		return c.JMS(operand, nextcode)
@@ -136,6 +145,10 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 	} else if opcode >= 0x70 && opcode <= 0x7F {
 		nextcode := c.FetchOpCode()
 		return c.ISZ(operand, nextcode)
+	} else if opcode >= 0x80 && opcode <= 0x8F {
+		return c.ADD(operand)
+	} else if opcode >= 0x90 && opcode <= 0x9F {
+		return c.SUB(operand)
 	} else if opcode >= 0xA0 && opcode <= 0xAF {
 		return c.LD(operand)
 	} else if opcode >= 0xB0 && opcode <= 0xBF {
@@ -146,10 +159,56 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 		return c.LDM(operand)
 	} else if opcode == 0xE0 {
 		return c.WRM()
+	} else if opcode == 0xE1 {
+		return c.WMP()
 	} else if opcode == 0xE2 {
 		return c.WRR()
+	} else if opcode == 0xE4 {
+		return c.WR(0)
+	} else if opcode == 0xE5 {
+		return c.WR(1)
+	} else if opcode == 0xE6 {
+		return c.WR(2)
+	} else if opcode == 0xE7 {
+		return c.WR(3)
+	} else if opcode == 0xE8 {
+		return c.SBM()
+	} else if opcode == 0xE9 {
+		return c.RDM()
+	} else if opcode == 0xEA {
+		return c.RDR()
+	} else if opcode == 0xEB {
+		return c.ADM()
+	} else if opcode == 0xEC {
+		return c.RD(0)
+	} else if opcode == 0xED {
+		return c.RD(1)
+	} else if opcode == 0xEE {
+		return c.RD(2)
+	} else if opcode == 0xEF {
+		return c.RD(3)
+	} else if opcode == 0xF0 {
+		return c.CLB()
+	} else if opcode == 0xF1 {
+		return c.CLC()
 	} else if opcode == 0xF2 {
 		return c.IAC()
+	} else if opcode == 0xF5 {
+		return c.RAL()
+	} else if opcode == 0xF6 {
+		return c.RAR()
+	} else if opcode == 0xF7 {
+		return c.TCC()
+	} else if opcode == 0xF8 {
+		return c.DAC()
+	} else if opcode == 0xF9 {
+		return c.TCS()
+	} else if opcode == 0xFA {
+		return c.STC()
+	} else if opcode == 0xFB {
+		return c.DAA()
+	} else if opcode == 0xFD {
+		return c.DCL()
 	} else {
 		fmt.Println("Unknown operation!")
 		return 1

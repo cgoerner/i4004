@@ -40,16 +40,16 @@ func (c *CPU) JUN() uint8 {
 }
 
 func (c *CPU) JMS(addr1 uint8, addr2 uint8) uint8 {
-	// Jump to Subroutine
-	fmt.Println("JMS", addr1, addr2)
-	c.PrintAll(addr1)
-	c.PrintAll(addr2)
+	// JMP: Jump to Subroutine
 	address := addr1 | addr2
-	c.PrintAll(address)
 	if c.StackPointer < 3 {
 		c.StackPointer++
-		for i := uint8(0); !(i == 0); i-- {
-			c.PCStack[i] = c.PCStack[i-1]
+		for i := c.StackPointer; i > 0; i-- {
+			if i == 1 {
+				c.PCStack[i] = c.PCStack[i-1] - 1 //c.PCStack[0] as already been incremented, so we need to use one less
+			} else {
+				c.PCStack[i] = c.PCStack[i-1]
+			}
 		}
 		c.PCStack[0] = address
 	} else {
@@ -99,15 +99,18 @@ func (c *CPU) LD(register uint8) uint8 {
 }
 
 func (c *CPU) XCH(register uint8) uint8 {
-	// Exchange
+	// XCH: Exchange. Exchange index register and accumulator.
+	temp := c.Registers[register]
 	c.Registers[register] = c.Accumulator
+	c.Accumulator = temp
 	return 1 // 1 cycle
 }
 
 func (c *CPU) BBL(data uint8) uint8 {
 	// Branch Back and Load
 	if c.StackPointer > 0 {
-		for i := uint8(0); !(i > c.StackPointer); i++ {
+		for i := uint8(0); i < c.StackPointer; i++ {
+			fmt.Println(i)
 			c.PCStack[i] = c.PCStack[i+1]
 		}
 		c.PCStack[c.StackPointer] = 0
@@ -131,6 +134,7 @@ func (c *CPU) WRM() uint8 {
 
 func (c *CPU) WMP() uint8 {
 	// Write RAM Port
+	c.RAMData[0] = c.Accumulator
 	return 1 // 1 cycle
 }
 
@@ -140,23 +144,8 @@ func (c *CPU) WRR() uint8 {
 	return 1 // 1 cycle
 }
 
-func (c *CPU) WR0() uint8 {
-	// Write Status Char 0
-	return 1 // 1 cycle
-}
-
-func (c *CPU) WR1() uint8 {
-	// Write Status Char 1
-	return 1 // 1 cycle
-}
-
-func (c *CPU) WR2() uint8 {
-	// Write Status Char 2
-	return 1 // 1 cycle
-}
-
-func (c *CPU) WR3() uint8 {
-	// Write Status Char 0
+func (c *CPU) WR(n uint8) uint8 {
+	// Write Status Char n
 	return 1 // 1 cycle
 }
 
@@ -175,23 +164,13 @@ func (c *CPU) RDR() uint8 {
 	return 1 // 1 cycle
 }
 
-func (c *CPU) RD0() uint8 {
-	// Read Status Char 0
+func (c *CPU) ADM() uint8 {
+	// Read ROM Port
 	return 1 // 1 cycle
 }
 
-func (c *CPU) RD1() uint8 {
-	// Read Status Char 1
-	return 1 // 1 cycle
-}
-
-func (c *CPU) RD2() uint8 {
-	// Read Status Char 2
-	return 1 // 1 cycle
-}
-
-func (c *CPU) RD3() uint8 {
-	// Read Status Char 3
+func (c *CPU) RD(n uint8) uint8 {
+	// Read Status Char n
 	return 1 // 1 cycle
 }
 
@@ -202,6 +181,7 @@ func (c *CPU) CLB() uint8 {
 
 func (c *CPU) CLC() uint8 {
 	// Clear Carry
+	c.Carry = 0
 	return 1 // 1 cycle
 }
 
@@ -228,11 +208,20 @@ func (c *CPU) CMA() uint8 {
 
 func (c *CPU) RAL() uint8 {
 	// Rotate Left
+	c.Accumulator = (c.Accumulator << 1) | c.Carry
+	c.Carry = 0
+	if (c.Accumulator & 0xF0) == 1 {
+		c.Accumulator = c.Accumulator & 0xF
+		c.Carry = 1
+	}
 	return 1 // 1 cycle
 }
 
 func (c *CPU) RAR() uint8 {
 	// Rotate Right
+	temp := c.Accumulator & 1
+	c.Accumulator = (c.Accumulator >> 1) | (c.Carry << 3)
+	c.Carry = temp
 	return 1 // 1 cycle
 }
 
