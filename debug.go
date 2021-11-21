@@ -14,7 +14,7 @@ func (c *CPU) DebugInfo() string {
 		c.Registers[R0], c.Registers[R1], c.Registers[R2], c.Registers[R3], c.Registers[R4], c.Registers[R5], c.Registers[R6], c.Registers[R7],
 		c.Registers[R8], c.Registers[R9], c.Registers[RA], c.Registers[RB], c.Registers[RC], c.Registers[RD], c.Registers[RE], c.Registers[RF])
 
-	ptrs := fmt.Sprintf("A=%04x C=%01x RA=%01x SP=%01x PC=%01x PC1=%01x PC2=%01x PC3=%01x",
+	ptrs := fmt.Sprintf("A=%04x C=%01x RA=%01x SP=%01x PC=%03x %03x %03x %03x",
 		c.Accumulator, c.Carry, c.RAMAddressRegister, c.StackPointer, c.PCStack[0], c.PCStack[1], c.PCStack[2], c.PCStack[3])
 
 	return fmt.Sprintf("%s %s", ptrs, regs)
