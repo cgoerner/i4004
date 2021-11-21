@@ -224,3 +224,29 @@ func (c *CPU) SetRegisterPair(index uint8, data uint8) {
 func (c *CPU) GetRegisterPair(index uint8) uint8 {
 	return ((uint8(c.Registers[index])<<4)&0xF0 | uint8(c.Registers[index+1])&0xF)
 }
+
+func (c *CPU) LoadFileIntoROM(filename string) {
+	f, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+
+	fi, err := f.Stat()
+	if err != nil {
+		panic(err)
+	}
+
+	bytes := make([]byte, fi.Size())
+
+	len, err := f.Read(bytes)
+	if err != nil {
+		fmt.Println(len)
+		panic(err)
+	}
+
+	f.Close()
+
+	for index, element := range bytes {
+		c.PROM[index] = element
+	}
+}
