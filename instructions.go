@@ -4,6 +4,7 @@ import "fmt"
 
 func (c *CPU) NOP() uint8 {
 	// No Operation
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
@@ -15,17 +16,23 @@ func (c *CPU) JCN(condition uint8, address uint8) uint8 {
 func (c *CPU) FIM(rpair uint8, data uint8) uint8 {
 	// Fetch Immediate
 	c.SetRegisterPair(rpair, data)
+	c.IncrementPC()
 	return 2 // 2 cycles
 }
 
 func (c *CPU) SRC(rpair uint8) uint8 {
 	// Send Register Control
 	c.RAMAddressRegister = c.GetRegisterPair(rpair)
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
-func (c *CPU) FIN(rpair uint8, data uint8) uint8 {
+func (c *CPU) FIN(rpair uint8) uint8 {
 	// Fetch Indirect
+	fmt.Println("FIN")
+	c.PrintAll(rpair)
+	c.SetRegisterPair(rpair, c.PROM[uint8(c.PCStack[0]&0xF00)|c.GetRegisterPair(0)])
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
@@ -39,22 +46,22 @@ func (c *CPU) JUN(address uint8) uint8 {
 	return 2 // 1 cycle
 }
 
-func (c *CPU) JMS(addr1 uint8, addr2 uint8) uint8 {
+func (c *CPU) JMS(addr1 uint16, addr2 uint8) uint8 {
 	// JMP: Jump to Subroutine
-	address := addr1 | addr2
+	address := addr1 | uint16(addr2)
 	if c.StackPointer < 3 {
 		c.StackPointer++
 		for i := c.StackPointer; i > 0; i-- {
-			if i == 1 {
-				c.PCStack[i] = c.PCStack[i-1] - 1 //c.PCStack[0] as already been incremented, so we need to use one less
-			} else {
-				c.PCStack[i] = c.PCStack[i-1]
-			}
+			c.PCStack[i] = c.PCStack[i-1]
 		}
-		c.PCStack[0] = address
+		c.PCStack[0] = uint16(address)
 	} else {
-		panic("Stack Overflow!")
+		c.IncrementPC()
+		if c.Debug {
+			fmt.Println("Stack Overflow!")
+		}
 	}
+
 	return 2 // 1 cycle
 }
 
@@ -64,6 +71,7 @@ func (c *CPU) INC(register uint8) uint8 {
 	if c.Registers[register]&0xf0 == 1 {
 		c.Registers[register] = 0
 	}
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
@@ -71,7 +79,8 @@ func (c *CPU) ISZ(register uint8, address uint8) uint8 {
 	// Increment and Skip
 	c.Registers[register] = (c.Registers[register] + 1) & 0xF
 	if c.Registers[register] > 0 {
-		c.PCStack[0] = (c.PCStack[0] & 0xF0) | address
+		c.PCStack[0] = ((c.PCStack[0]) & 0xF00) | uint16(address)
+		c.PCStack[0]-- // Hmm. Not sure about this. We didn't actually want to increment the PC before?
 	}
 	return 2 // 2 cycles
 }
@@ -96,6 +105,7 @@ func (c *CPU) SUB(register uint8) uint8 {
 func (c *CPU) LD(register uint8) uint8 {
 	// LD: Load. Load index register to Accumulator.
 	c.Accumulator = c.Registers[register]
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
@@ -104,6 +114,7 @@ func (c *CPU) XCH(register uint8) uint8 {
 	temp := c.Registers[register]
 	c.Registers[register] = c.Accumulator
 	c.Accumulator = temp
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
@@ -111,13 +122,17 @@ func (c *CPU) BBL(data uint8) uint8 {
 	// Branch Back and Load
 	if c.StackPointer > 0 {
 		for i := uint8(0); i < c.StackPointer; i++ {
-			fmt.Println(i)
 			c.PCStack[i] = c.PCStack[i+1]
 		}
 		c.PCStack[c.StackPointer] = 0
 		c.StackPointer--
 		c.Accumulator = data
+	} else {
+		if c.Debug {
+			fmt.Println("Stack error")
+		}
 	}
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
@@ -129,19 +144,21 @@ func (c *CPU) LDM(data uint8) uint8 {
 
 func (c *CPU) WRM() uint8 {
 	// Write Main Memory. Write accumulator into RAM character.
-	c.Accumulator = c.RAMAddressRegister //???
-	return 1                             // 1 cycle
+	c.RAMData[c.RAMAddressRegister] = c.Accumulator
+	return 1 // 1 cycle
 }
 
 func (c *CPU) WMP() uint8 {
 	// Write RAM Port
-	c.RAMData[0] = c.Accumulator
+	c.ActiveBank = c.Accumulator
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
 func (c *CPU) WRR() uint8 {
 	// Write ROM Port
 	c.ROMPort = c.Accumulator
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
@@ -183,6 +200,7 @@ func (c *CPU) CLB() uint8 {
 func (c *CPU) CLC() uint8 {
 	// Clear Carry
 	c.Carry = 0
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 
@@ -215,6 +233,7 @@ func (c *CPU) RAL() uint8 {
 		c.Accumulator = c.Accumulator & 0xF
 		c.Carry = 1
 	}
+	c.IncrementPC()
 	return 1 // 1 cycle
 }
 

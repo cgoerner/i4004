@@ -44,12 +44,13 @@ type CPU struct {
 	RAMStatus [16][4][4]uint8
 	Registers [16]uint8
 
-	Accumulator        uint8    //Accumulator (4 bits)
-	Carry              uint8    //Carry flag (1 bit)
-	Test               uint8    //Test pin (1 bit)
-	PCStack            [4]uint8 //Program counter stack
+	Accumulator        uint8     //Accumulator (4 bits)
+	Carry              uint8     //Carry flag (1 bit)
+	Test               uint8     //Test pin (1 bit)
+	PCStack            [4]uint16 //Program counter stack (12 bits each)
 	StackPointer       uint8
 	RAMAddressRegister uint8 //???
+	ActiveBank         uint8
 
 	ClockTime    time.Duration //Time between each clock tick
 	TimeUsed     time.Duration //Time spent processing operations
@@ -105,7 +106,6 @@ func (c *CPU) Step() {
 
 func (c *CPU) FetchOpCode() uint8 {
 	opcode := c.PROM[c.PCStack[0]]
-	c.PCStack[0]++
 	return opcode
 }
 
@@ -113,36 +113,36 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 
 	operand := opcode % 16
 
-	//fmt.Println("opcode and operand")
-	//PrintAll(opcode)
-	//PrintAll(operand)
-
 	if opcode >= 0x0 && opcode <= 0x09 {
 		return c.NOP()
 	} else if opcode >= 0x10 && opcode <= 0x1F {
 		return c.JCN(opcode, operand)
 	} else if opcode >= 0x20 && opcode <= 0x2F {
 		if !(operand%2 == 1) {
+			c.IncrementPC() // An extra increment before we read the next opcode
 			nextcode := c.FetchOpCode()
+			fmt.Println(operand)
+			fmt.Println(nextcode)
 			return c.FIM(operand, nextcode)
 		} else {
 			return c.SRC((operand - 1) / 2)
 		}
 	} else if opcode >= 0x30 && opcode <= 0x3F {
 		if !(operand%2 == 1) {
-			nextcode := c.FetchOpCode()
-			return c.FIN(operand, nextcode)
+			return c.FIN(operand)
 		} else {
 			return c.JIN((operand - 1) / 2)
 		}
 	} else if opcode >= 0x40 && opcode <= 0x4F {
 		return c.JUN(operand & 0xF0)
 	} else if opcode >= 0x50 && opcode <= 0x5F {
+		c.IncrementPC() // An extra increment before we read the next opcode
 		nextcode := c.FetchOpCode()
-		return c.JMS(operand, nextcode)
+		return c.JMS((uint16(operand) & 0xF00), nextcode)
 	} else if opcode >= 0x60 && opcode <= 0x6F {
 		return c.INC(operand)
 	} else if opcode >= 0x70 && opcode <= 0x7F {
+		c.IncrementPC() // An extra increment before we read the next opcode
 		nextcode := c.FetchOpCode()
 		return c.ISZ(operand, nextcode)
 	} else if opcode >= 0x80 && opcode <= 0x8F {
@@ -211,9 +211,16 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 		return c.DCL()
 	} else {
 		fmt.Println("Unknown operation!")
+		c.IncrementPC()
 		return 1
 	}
+}
 
+func (c *CPU) IncrementPC() {
+	c.PCStack[0]++ // Increment the Program Counter
+	if c.PCStack[0] >= 0xFF {
+		c.PCStack[0] = 0x00 // I don't think this is right
+	}
 }
 
 func (c *CPU) SetRegisterPair(index uint8, data uint8) {
