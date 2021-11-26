@@ -14,10 +14,16 @@ func (c *CPU) DebugInfo() string {
 		c.Registers[R0], c.Registers[R1], c.Registers[R2], c.Registers[R3], c.Registers[R4], c.Registers[R5], c.Registers[R6], c.Registers[R7],
 		c.Registers[R8], c.Registers[R9], c.Registers[RA], c.Registers[RB], c.Registers[RC], c.Registers[RD], c.Registers[RE], c.Registers[RF])
 
-	ptrs := fmt.Sprintf("A=%04x C=%01x RA=%01x SP=%01x PC=%03x %03x %03x %03x",
+	ptrs := fmt.Sprintf("A=%01x C=%01x RA=%01x SP=%01x PC=%03x %03x %03x %03x",
 		c.Accumulator, c.Carry, c.RAMAddressRegister, c.StackPointer, c.PCStack[0], c.PCStack[1], c.PCStack[2], c.PCStack[3])
 
-	return fmt.Sprintf("%s %s", ptrs, regs)
+	ram := ""
+	for index := range c.RAMData[0:64] {
+		ram += fmt.Sprintf("%01x", c.RAMData[index])
+	}
+
+	return fmt.Sprintf("%s %s\r\n RAM: %s", ptrs, regs, ram)
+
 }
 
 func (c *CPU) CPUInfo() string {
@@ -25,6 +31,13 @@ func (c *CPU) CPUInfo() string {
 }
 
 func (c *CPU) PrintAll(n uint8) {
+	var number int64 = int64(n)
+	fmt.Print(strconv.FormatInt(number, 2), " ")
+	fmt.Print(strconv.FormatInt(number, 10), " ")
+	fmt.Println(strconv.FormatInt(number, 16))
+}
+
+func (c *CPU) PrintAll16(n uint16) {
 	var number int64 = int64(n)
 	fmt.Print(strconv.FormatInt(number, 2), " ")
 	fmt.Print(strconv.FormatInt(number, 10), " ")
