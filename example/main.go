@@ -14,7 +14,9 @@ func main() {
 
 	fmt.Println(c.CPUInfo())
 
+	// Populate PROM with instructions
 	c.LoadFileIntoROM(os.Args[1])
 
+	// Start processing instructions
 	c.Run()
 }
