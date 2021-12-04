@@ -41,7 +41,7 @@ type CPU struct {
 	PROM      [4096]uint8 //4KB
 	ROMPort   uint8
 	RAMData   [4096]uint8 //4KB
-	RAMStatus [16][4][4]uint8
+	RAMStatus [4][4][4]uint8
 	Registers [16]uint8
 
 	Accumulator        uint8     //Accumulator (4 bits)
@@ -86,7 +86,7 @@ func (c *CPU) Run() {
 
 		c.Step()
 
-		if c.CycleCounter >= 100 {
+		if c.CycleCounter >= 2000 {
 			os.Exit(2)
 		}
 	}
@@ -116,13 +116,13 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 	if opcode >= 0x0 && opcode <= 0x09 {
 		return c.NOP()
 	} else if opcode >= 0x10 && opcode <= 0x1F {
-		return c.JCN(opcode, operand)
+		c.IncrementPC() // An extra increment before we read the next opcode
+		nextcode := c.FetchOpCode()
+		return c.JCN(operand, nextcode)
 	} else if opcode >= 0x20 && opcode <= 0x2F {
 		if !(operand%2 == 1) {
 			c.IncrementPC() // An extra increment before we read the next opcode
 			nextcode := c.FetchOpCode()
-			fmt.Println(operand)
-			fmt.Println(nextcode)
 			return c.FIM(operand, nextcode)
 		} else {
 			return c.SRC((operand - 1) / 2)
@@ -134,7 +134,9 @@ func (c *CPU) PerformOp(opcode uint8) uint8 {
 			return c.JIN((operand - 1) / 2)
 		}
 	} else if opcode >= 0x40 && opcode <= 0x4F {
-		return c.JUN(operand & 0xF0)
+		c.IncrementPC() // An extra increment before we read the next opcode
+		nextcode := c.FetchOpCode()
+		return c.JUN(uint16(operand)&0xF00, nextcode)
 	} else if opcode >= 0x50 && opcode <= 0x5F {
 		c.IncrementPC() // An extra increment before we read the next opcode
 		nextcode := c.FetchOpCode()
