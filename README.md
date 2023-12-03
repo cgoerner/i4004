@@ -19,3 +19,14 @@ Start the web server:
 ```
 ./i4004-server
 ```
+
+Install:
+```
+go install github.com/cgoerner/i4004/cmd/i4004
+i4004 examples/fulltest.rom
+
+# or
+
+go install github.com/cgoerner/i4004/cmd/i4004-server
+i4004-server
+```
