@@ -1,4 +1,4 @@
-package i4004
+package cpu
 
 import (
 	"fmt"

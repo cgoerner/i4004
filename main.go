@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cgoerner/i4004"
+	cpu "github.com/cgoerner/i4004/cpu"
 )
 
 func main() {
-	// Create a new CPU object
-	c := i4004.New()
+	// Create a new CPU
+	c := cpu.New()
 	c.Debug = true
 
 	fmt.Println(c.CPUInfo())
